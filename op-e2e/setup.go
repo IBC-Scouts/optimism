@@ -576,12 +576,17 @@ func (cfg SystemConfig) Start(t *testing.T, _opts ...SystemConfigOption) (*Syste
 			return nil, fmt.Errorf("could not locate interceptor in working directory: %w", err)
 		}
 
+		configPath := fmt.Sprintf("%s/%s", basePath, "config.json")
+		if _, err := os.Stat(configPath); err != nil {
+			return nil, fmt.Errorf("could not locate interceptor config.json in working directory: %w", err)
+		}
+
 		l2EndpointCfg, ok := rollupCfg.L2.(*rollupNode.L2EndpointConfig)
 		if !ok {
 			return nil, fmt.Errorf("unable to cast rollup L2 config to endpoint config")
 		}
 
-		_, err = start(binPath, l2EndpointCfg.L2EngineAddr)
+		_, err = start(binPath, configPath, l2EndpointCfg.L2EngineAddr)
 		if err != nil {
 			return nil, err
 		}

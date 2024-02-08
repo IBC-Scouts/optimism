@@ -14,10 +14,11 @@ type interceptorSession struct {
 	endpoints *external.Endpoints
 }
 
-func start(binPath, gethEngineAddr string) (*interceptorSession, error) {
+func start(binPath, configPath, gethEngineAddr string) (*interceptorSession, error) {
 	cmd := exec.Command(
 		binPath,
 		"--geth-engine-addr", gethEngineAddr,
+		"--config", configPath,
 		"start",
 	)
 	sess, err := gexec.Start(cmd, os.Stdout, os.Stderr)
