@@ -132,21 +132,10 @@ func DefaultSystemConfig(t *testing.T) SystemConfig {
 				ConfigPersistence:           &rollupNode.DisabledConfigPersistence{},
 				Sync:                        sync.Config{SyncMode: sync.CLSync},
 			},
-			"verifier": {
-				Driver: driver.Config{
-					VerifierConfDepth:  0,
-					SequencerConfDepth: 0,
-					SequencerEnabled:   false,
-				},
-				L1EpochPollInterval:         time.Second * 4,
-				RuntimeConfigReloadInterval: time.Minute * 10,
-				ConfigPersistence:           &rollupNode.DisabledConfigPersistence{},
-				Sync:                        sync.Config{SyncMode: sync.CLSync},
-			},
 		},
 		Loggers: map[string]log.Logger{
 			"verifier":  testlog.Logger(t, log.LvlInfo).New("role", "verifier"),
-			"sequencer": testlog.Logger(t, log.LvlInfo).New("role", "sequencer"),
+			"sequencer": testlog.Logger(t, log.LvlDebug).New("role", "sequencer"),
 			"batcher":   testlog.Logger(t, log.LvlInfo).New("role", "batcher"),
 			"proposer":  testlog.Logger(t, log.LvlCrit).New("role", "proposer"),
 		},
@@ -586,9 +575,21 @@ func (cfg SystemConfig) Start(t *testing.T, _opts ...SystemConfigOption) (*Syste
 			return nil, fmt.Errorf("unable to cast rollup L2 config to endpoint config")
 		}
 
-		_, err = start(binPath, configPath, l2EndpointCfg.L2EngineAddr)
+		node, err := start(binPath, configPath, l2EndpointCfg.L2EngineAddr)
 		if err != nil {
 			return nil, err
+		}
+
+		// now the interceptor has the geth client
+		// set the interceptor rpc in the L2 config so op-node interacts with interceptor
+		l2EndpointConfig := node.Endpoints.WSAuthEndpoint
+		if UseHTTP() {
+			l2EndpointConfig = node.Endpoints.HTTPAuthEndpoint
+		}
+
+		rollupCfg.L2 = &rollupNode.L2EndpointConfig{
+			L2EngineAddr:      l2EndpointConfig,
+			L2EngineJWTSecret: testingJWTSecret,
 		}
 
 		fmt.Printf("================== interceptor node start complete ==========================\n")
