@@ -13,6 +13,8 @@ import (
 	"github.com/onsi/gomega/gexec"
 )
 
+const rgxp = `(http|ws)=\S+`
+
 type interceptorSession struct {
 	session   *gexec.Session
 	Endpoints *external.Endpoints
@@ -31,9 +33,10 @@ func start(binPath, configPath, gethEngineAddr string) (*interceptorSession, err
 	}
 
 	// code copied from https://github.com/polymerdao/optimism-dev/blob/518341f3e2dc7bf88eb06513a740fc9ced1ccf39/op-e2e/e2eutils/external_polymer/main.go#L150
+	// Modified to look in stderr since our logger logs there!
 	matcher := gbytes.Say("Execution engine rpc server enabled")
 	var httpUrl, wsUrl string
-	urlRE := regexp.MustCompile(`(http|ws)=\S+`)
+	urlRE := regexp.MustCompile(rgxp)
 	for httpUrl == "" && wsUrl == "" {
 		match, err := matcher.Match(sess.Err)
 		if err != nil {
