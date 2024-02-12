@@ -33,9 +33,9 @@ func start(binPath, configPath, gethEngineAddr string) (*interceptorSession, err
 	// code copied from https://github.com/polymerdao/optimism-dev/blob/518341f3e2dc7bf88eb06513a740fc9ced1ccf39/op-e2e/e2eutils/external_polymer/main.go#L150
 	matcher := gbytes.Say("Execution engine rpc server enabled")
 	var httpUrl, wsUrl string
-	urlRE := regexp.MustCompile(`Execution engine rpc server enabled\s+http=(.+)\sws=(.+)`)
+	urlRE := regexp.MustCompile(`(http|ws)=\S+`)
 	for httpUrl == "" && wsUrl == "" {
-		match, err := matcher.Match(sess.Out)
+		match, err := matcher.Match(sess.Err)
 		if err != nil {
 			return nil, fmt.Errorf("could not execute matcher")
 		}
@@ -48,12 +48,12 @@ func start(binPath, configPath, gethEngineAddr string) (*interceptorSession, err
 			continue
 		}
 
-		for _, line := range strings.Split(string(sess.Out.Contents()), "\n") {
-			found := urlRE.FindStringSubmatch(line)
-			if len(found) == 3 {
-				httpUrl = found[1]
-				wsUrl = found[2]
-				continue
+		for _, line := range strings.Split(string(sess.Err.Contents()), "\n") {
+			found := urlRE.FindAllString(line, -1)
+			if len(found) == 2 {
+				httpUrl, _ = strings.CutPrefix(found[0], "http=")
+				wsUrl, _ = strings.CutPrefix(found[1], "ws=")
+				break
 			}
 		}
 	}
