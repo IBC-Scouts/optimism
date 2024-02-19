@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils/wait"
+	interceptornode "github.com/ethereum-optimism/optimism/op-e2e/interceptor-node"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
@@ -25,9 +26,9 @@ func TestSendCosmosTx(t *testing.T) {
 	l1Client := sys.Clients["l1"]
 	l2Verif := sys.Clients["sequencer"]
 
-	cosmosClient, err := CreateCosmosClient(sys)
+	cosmosClient, err := interceptornode.CreateCosmosClient(sys.t, sys.Cfg.Nodes["sequencer"].L2)
 	require.Nil(t, err, "Error creating cosmos client")
-	defer cosmosClient.client.Close()
+	defer cosmosClient.Close()
 
 	// invoke sendTx with random data
 	res, err := cosmosClient.SendCosmosTx([]byte("blob"))

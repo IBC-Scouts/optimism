@@ -46,6 +46,7 @@ import (
 	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils"
 	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils/fakebeacon"
 	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils/geth"
+	interceptornode "github.com/ethereum-optimism/optimism/op-e2e/interceptor-node"
 	"github.com/ethereum-optimism/optimism/op-node/chaincfg"
 	"github.com/ethereum-optimism/optimism/op-node/metrics"
 	rollupNode "github.com/ethereum-optimism/optimism/op-node/node"
@@ -555,29 +556,16 @@ func (cfg SystemConfig) Start(t *testing.T, _opts ...SystemConfigOption) (*Syste
 
 		// start interceptor node
 		fmt.Printf("================== attempt starting interceptor node ==========================\n")
-		wd, err := os.Getwd()
-		if err != nil {
-			return nil, err
-		}
-		basePath := strings.SplitAfter(wd, "op-e2e")[0]
-		binPath := fmt.Sprintf("%s/%s", basePath, "interceptor")
-		if _, err := os.Stat(binPath); err != nil {
-			return nil, fmt.Errorf("could not locate interceptor in working directory: %w", err)
-		}
-
-		configPath := fmt.Sprintf("%s/%s", basePath, "config.json")
-		if _, err := os.Stat(configPath); err != nil {
-			return nil, fmt.Errorf("could not locate interceptor config.json in working directory: %w", err)
-		}
 
 		l2EndpointCfg, ok := rollupCfg.L2.(*rollupNode.L2EndpointConfig)
 		if !ok {
 			return nil, fmt.Errorf("unable to cast rollup L2 config to endpoint config")
 		}
 
-		node, err := start(binPath, configPath, l2EndpointCfg.L2EngineAddr)
+		node, err := interceptornode.BinRun(l2EndpointCfg.L2EngineAddr)
 		if err != nil {
-			return nil, err
+			// easier to find errors when debugging.
+			panic(err)
 		}
 
 		// now the interceptor has the geth client

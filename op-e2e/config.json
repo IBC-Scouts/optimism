@@ -1,5 +1,0 @@
-{
-	"logLevel": "info",
-	"gethAuthSecret": [123],
-	"engineServerAddr": "localhost:0"
-}
