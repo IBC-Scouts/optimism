@@ -27,6 +27,7 @@ const (
 	EAS                           = "0x4200000000000000000000000000000000000021"
 	Create2Deployer               = "0x13b0D85CcB8bf860b6b79AF3029fCA081AE9beF2"
 	IBCCrossDomainMessenger       = "0x42000000000000000000000000000000000000E0" // ibc cross domain messenger predeploy
+	IBCStandardBridge             = "0x42000000000000000000000000000000000000E1" // ibc standard bridge predeploy
 	MultiCall3                    = "0xcA11bde05977b3631167028862bE2a173976CA11"
 	Safe_v130                     = "0x69f4D1788e39c87893C980c06EdF4b7f686e2938"
 	SafeL2_v130                   = "0xfb1bffC9d739B8D520DaF37dF666da4C687191EA"
@@ -61,6 +62,7 @@ var (
 	EASAddr                           = common.HexToAddress(EAS)
 	Create2DeployerAddr               = common.HexToAddress(Create2Deployer)
 	IBCCrossDomainMessengerAddr       = common.HexToAddress(IBCCrossDomainMessenger)
+	IBCStandardBridgeAddr             = common.HexToAddress(IBCStandardBridge)
 	MultiCall3Addr                    = common.HexToAddress(MultiCall3)
 	Safe_v130Addr                     = common.HexToAddress(Safe_v130)
 	SafeL2_v130Addr                   = common.HexToAddress(SafeL2_v130)
@@ -152,4 +154,5 @@ func init() {
 	}
 
 	Predeploys["IBCCrossDomainMessenger"] = &Predeploy{Address: IBCCrossDomainMessengerAddr}
+	Predeploys["IBCStandardBridge"] = &Predeploy{Address: IBCStandardBridgeAddr}
 }

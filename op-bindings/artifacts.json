@@ -46,7 +46,8 @@
     "ISemver",
     "StorageSetter",
     "SuperchainConfig",
-    "IBCCrossDomainMessenger"
+    "IBCCrossDomainMessenger", 
+    "IBCStandardBridge"
   ],
   "remote": [
     {
