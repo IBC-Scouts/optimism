@@ -45,7 +45,9 @@
     "DelayedVetoable",
     "ISemver",
     "StorageSetter",
-    "SuperchainConfig"
+    "SuperchainConfig",
+    "IBCCrossDomainMessenger", 
+    "IBCStandardBridge"
   ],
   "remote": [
     {

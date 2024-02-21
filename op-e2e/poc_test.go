@@ -6,12 +6,18 @@ import (
 	"testing"
 	"time"
 
+	e2eutils "github.com/ethereum-optimism/optimism/indexer/e2e_tests/utils"
+	"github.com/ethereum-optimism/optimism/op-bindings/bindings"
+	"github.com/ethereum-optimism/optimism/op-bindings/predeploys"
+	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils/transactions"
 	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils/wait"
 	interceptornode "github.com/ethereum-optimism/optimism/op-e2e/interceptor-node"
+	"github.com/ethereum-optimism/optimism/op-service/testlog"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/log"
 	"github.com/stretchr/testify/require"
 )
 
@@ -82,4 +88,54 @@ func TestSendCosmosTx(t *testing.T) {
 	require.NoError(t, err)
 	cancel()
 	require.Equal(t, startNonce+1, endNonce, "Nonce of deposit sender should increment on L2, even if the deposit fails")
+}
+
+func TestIBCTransfer(t *testing.T) {
+	InitParallel(t)
+
+	cfg := DefaultSystemConfig(t)
+
+	sys, err := cfg.Start(t)
+	require.Nil(t, err, "Error starting up system")
+	defer sys.Close()
+
+	log := testlog.Logger(t, log.LvlInfo)
+	log.Info("genesis", "l2", sys.RollupConfig.Genesis.L2, "l1", sys.RollupConfig.Genesis.L1, "l2_time", sys.RollupConfig.Genesis.L2Time)
+
+	//l1Client := sys.Clients["l1"]
+	l2Client := sys.Clients["sequencer"]
+
+	l2Opts, err := bind.NewKeyedTransactorWithChainID(sys.Cfg.Secrets.Alice, cfg.L2ChainIDBig())
+	require.NoError(t, err)
+
+	// initiate IBC transfer
+	/*
+		ibcEscrowContract, err := bindings.NewIBCStandardBridge(predeploys.IBCStandardBridgeAddr, l2Client)
+		require.NoError(t, err)
+		tx, err = transactions.PadGasEstimate(opts, 1.1, func(opts *bind.TransactOpts) (*types.Transaction, error) {
+			return ibcEscrowContract.Receive(l2Opts, weth9Address, []byte("hello cosmos"), 100000)
+		})
+		require.NoError(t, err)
+		ibcMsgReceipt, err := wait.ForReceiptOK(context.Background(), l2Client, tx.Hash())
+		require.NoError(t, err)
+
+		t.Log("Message sent through IBCCrossDomainMessenger", "gas used", ibcMsgReceipt.GasUsed)
+	*/
+
+	// invoke cross domain messenger
+	ibcMessenger, err := bindings.NewIBCCrossDomainMessenger(predeploys.IBCCrossDomainMessengerAddr, l2Client)
+	require.NoError(t, err)
+	tx, err := transactions.PadGasEstimate(l2Opts, 1.1, func(opts *bind.TransactOpts) (*types.Transaction, error) {
+		return ibcMessenger.SendMessage(l2Opts, l2Opts.From, []byte("hello cosmos"), 100000)
+	})
+	require.NoError(t, err)
+	ibcMsgReceipt, err := wait.ForReceiptOK(context.Background(), l2Client, tx.Hash())
+	require.NoError(t, err)
+
+	t.Log("Message sent through IBCCrossDomainMessenger", "gas used", ibcMsgReceipt.GasUsed)
+
+	crossDomainMsg, err := e2eutils.ParseCrossDomainMessage(ibcMsgReceipt)
+	require.NoError(t, err)
+
+	t.Log("cross chain messenger event:", "sender", crossDomainMsg.Sender, "to:", crossDomainMsg.Target, "gas limit:", crossDomainMsg.GasLimit, "message:", string(crossDomainMsg.Message), "amount:", crossDomainMsg.Value)
 }

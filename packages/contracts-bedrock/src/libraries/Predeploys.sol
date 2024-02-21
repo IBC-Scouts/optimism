@@ -78,6 +78,9 @@ library Predeploys {
     /// @notice Address of the EAS predeploy.
     address internal constant EAS = 0x4200000000000000000000000000000000000021;
 
+    /// @notice Address of the IBCCrossDomainMessenger predeploy.
+    address internal constant IBC_CROSS_DOMAIN_MESSENGER = 0x42000000000000000000000000000000000000E0;
+
     /// @notice Address of the MultiCall3 predeploy.
     address internal constant MultiCall3 = 0xcA11bde05977b3631167028862bE2a173976CA11;
 
