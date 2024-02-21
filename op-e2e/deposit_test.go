@@ -77,7 +77,7 @@ func TestMintOnRevertedDeposit(t *testing.T) {
 }
 
 func TestDepositTxCreateContract(t *testing.T) {
-	t.Skip("this test sends a tx that creates a contract on the L2 - we don't support that")
+	// t.Skip("this test sends a tx that creates a contract on the L2 - we don't support that")
 	InitParallel(t)
 	cfg := DefaultSystemConfig(t)
 	delete(cfg.Nodes, "verifier")

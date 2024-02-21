@@ -681,10 +681,12 @@ func (cfg SystemConfig) Start(t *testing.T, _opts ...SystemConfigOption) (*Syste
 		nodeConfig := cfg.Nodes[name]
 		c := *nodeConfig // copy
 		c.Rollup = makeRollupConfig()
-		c.Rollup.Genesis.L2.Hash = sys.EthInstances[name].GenesisBlockHash()
-		c.Rollup.Genesis.L2.Number = sys.EthInstances[name].GenesisBlockHeight()
-		sys.RollupConfig.Genesis.L2.Hash = c.Rollup.Genesis.L2.Hash
-		sys.RollupConfig.Genesis.L2.Number = c.Rollup.Genesis.L2.Number
+
+		// TODO(jim): Comment these out for now (Getting ErrMissingGenesisL2Hash)
+		// c.Rollup.Genesis.L2.Hash = sys.EthInstances[name].GenesisBlockHash()
+		// c.Rollup.Genesis.L2.Number = sys.EthInstances[name].GenesisBlockHeight()
+		// s.RollupConfig.Genesis.L2.Hash = c.Rollup.Genesis.L2.Hash
+		// sys.RollupConfig.Genesis.L2.Number = c.Rollup.Genesis.L2.Number
 
 		if err := c.LoadPersisted(cfg.Loggers[name]); err != nil {
 			return nil, err

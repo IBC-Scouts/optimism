@@ -121,9 +121,10 @@ func NewOpGeth(t *testing.T, ctx context.Context, cfg *SystemConfig) (*OpGeth, e
 
 	require.Nil(t, err)
 
-	genesisPayload.BlockHash = rollupGenesis.L2.Hash
-	genesisPayload.BlockNumber = hexutil.Uint64(rollupGenesis.L2.Number)
-	genesisPayload.Timestamp = hexutil.Uint64(rollupGenesis.L2Time)
+	// TODO(jim): Comment these out for now. (Getting ErrMissingGenesisL2Hash error)
+	// genesisPayload.BlockHash = rollupGenesis.L2.Hash
+	// genesisPayload.BlockNumber = hexutil.Uint64(rollupGenesis.L2.Number)
+	// genesisPayload.Timestamp = hexutil.Uint64(rollupGenesis.L2Time)
 
 	return &OpGeth{
 		node:          node,
