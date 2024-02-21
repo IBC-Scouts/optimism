@@ -46,6 +46,7 @@ import (
 	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils"
 	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils/fakebeacon"
 	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils/geth"
+	interceptornode "github.com/ethereum-optimism/optimism/op-e2e/interceptor-node"
 	"github.com/ethereum-optimism/optimism/op-node/chaincfg"
 	"github.com/ethereum-optimism/optimism/op-node/metrics"
 	rollupNode "github.com/ethereum-optimism/optimism/op-node/node"
@@ -133,6 +134,7 @@ func DefaultSystemConfig(t *testing.T) SystemConfig {
 				ConfigPersistence:           &rollupNode.DisabledConfigPersistence{},
 				Sync:                        sync.Config{SyncMode: sync.CLSync},
 			},
+			/* // NOTE(jim): Disable verifier for now
 			"verifier": {
 				Driver: driver.Config{
 					VerifierConfDepth:  0,
@@ -144,10 +146,11 @@ func DefaultSystemConfig(t *testing.T) SystemConfig {
 				ConfigPersistence:           &rollupNode.DisabledConfigPersistence{},
 				Sync:                        sync.Config{SyncMode: sync.CLSync},
 			},
+			*/
 		},
 		Loggers: map[string]log.Logger{
 			"verifier":  testlog.Logger(t, log.LvlInfo).New("role", "verifier"),
-			"sequencer": testlog.Logger(t, log.LvlInfo).New("role", "sequencer"),
+			"sequencer": testlog.Logger(t, log.LvlDebug).New("role", "sequencer"),
 			"batcher":   testlog.Logger(t, log.LvlInfo).New("role", "batcher"),
 			"proposer":  testlog.Logger(t, log.LvlCrit).New("role", "proposer"),
 		},
@@ -584,6 +587,35 @@ func (cfg SystemConfig) Start(t *testing.T, _opts ...SystemConfigOption) (*Syste
 	for name, nodeCfg := range cfg.Nodes {
 		configureL1(nodeCfg, sys.EthInstances["l1"])
 		configureL2(nodeCfg, sys.EthInstances[name], cfg.JWTSecret)
+
+		// start interceptor node
+		fmt.Printf("================== attempt starting interceptor node ==========================\n")
+
+		l2EndpointCfg, ok := nodeCfg.L2.(*rollupNode.L2EndpointConfig)
+		if !ok {
+			return nil, fmt.Errorf("unable to cast rollup L2 config to endpoint config")
+		}
+
+		node, err := interceptornode.BinRun(l2EndpointCfg.L2EngineAddr)
+		if err != nil {
+			// easier to find errors when debugging.
+			panic(err)
+		}
+
+		// now the interceptor has the geth client
+		// set the interceptor rpc in the L2 config so op-node interacts with interceptor
+		l2EndpointConfig := node.Endpoints.WSAuthEndpoint
+		if UseHTTP() {
+			l2EndpointConfig = node.Endpoints.HTTPAuthEndpoint
+		}
+
+		nodeCfg.L2 = &rollupNode.L2EndpointConfig{
+			L2EngineAddr:      l2EndpointConfig,
+			L2EngineJWTSecret: testingJWTSecret,
+		}
+
+		fmt.Printf("================== interceptor node start complete ==========================\n")
+
 		if sys.RollupConfig.EcotoneTime != nil {
 			nodeCfg.Beacon = &rollupNode.L1BeaconEndpointConfig{BeaconAddr: sys.L1BeaconAPIAddr}
 		}
