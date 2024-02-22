@@ -31,6 +31,13 @@ type PredeploysImmutableConfig struct {
 		OtherBridge common.Address
 		Messenger   common.Address
 	}
+	IBCCrossDomainMessenger struct {
+		OtherMessenger common.Address
+	}
+	IBCStandardBridge struct {
+		OtherBridge common.Address
+		Messenger   common.Address
+	}
 	SequencerFeeVault struct {
 		Recipient           common.Address
 		MinWithdrawalAmount *big.Int
@@ -86,6 +93,13 @@ type PredeploysImmutableConfig struct {
 func (c *PredeploysImmutableConfig) Check() error {
 	return c.ForEach(func(name string, values any) error {
 		val := reflect.ValueOf(values)
+		//	https://github.com/ethereum-optimism/optimism/pull/8828/files#diff-c1609aa1966b5f821c1c2df56695f1e8c6f405b8e711d5cb2a1866a24ee0784bR95
+		if val.Kind() == reflect.Ptr { // skip missing optional entries
+			if val.IsNil() {
+				return nil
+			}
+			val = val.Elem()
+		}
 		if val.NumField() == 0 {
 			return nil
 		}
@@ -144,6 +158,13 @@ func Deploy(config *PredeploysImmutableConfig) (DeploymentResults, error) {
 
 	for i := 0; i < val.NumField(); i++ {
 		field := val.Field(i)
+		// https://github.com/ethereum-optimism/optimism/pull/8828/files#diff-c1609aa1966b5f821c1c2df56695f1e8c6f405b8e711d5cb2a1866a24ee0784bR159
+		if field.Kind() == reflect.Ptr {
+			if field.IsNil() {
+				continue
+			}
+			field = field.Elem()
+		}
 		if reflect.ValueOf(field.Interface()).IsZero() {
 			continue
 		}
@@ -215,6 +236,18 @@ func l2ImmutableDeployer(backend *backends.SimulatedBackend, opts *bind.Transact
 			return nil, fmt.Errorf("invalid type for otherBridge")
 		}
 		_, tx, _, err = bindings.DeployL2StandardBridge(opts, backend, otherBridge)
+	case "IBCCrossDomainMessenger":
+		otherMessenger, ok := deployment.Args[0].(common.Address)
+		if !ok {
+			return nil, fmt.Errorf("invalid type for otherMessenger")
+		}
+		_, tx, _, err = bindings.DeployIBCCrossDomainMessenger(opts, backend, otherMessenger)
+	case "IBCStandardBridge":
+		otherBridge, ok := deployment.Args[0].(common.Address)
+		if !ok {
+			return nil, fmt.Errorf("invalid type for otherBridge")
+		}
+		_, tx, _, err = bindings.DeployIBCStandardBridge(opts, backend, otherBridge)
 	case "SequencerFeeVault":
 		recipient, minimumWithdrawalAmount, withdrawalNetwork, err = prepareFeeVaultArguments(deployment)
 		if err != nil {

@@ -742,6 +742,16 @@ func NewL2ImmutableConfig(config *DeployConfig, block *types.Block) (*immutables
 			OtherBridge: config.L1StandardBridgeProxy,
 			Messenger:   predeploys.L2CrossDomainMessengerAddr,
 		},
+		IBCCrossDomainMessenger: struct{ OtherMessenger common.Address }{
+			OtherMessenger: config.L1CrossDomainMessengerProxy, // TODO: system address for ABCI app
+		},
+		IBCStandardBridge: struct {
+			OtherBridge common.Address
+			Messenger   common.Address
+		}{
+			OtherBridge: config.L1StandardBridgeProxy, // TODO: system address for ABCI app
+			Messenger:   predeploys.IBCCrossDomainMessengerAddr,
+		},
 		SequencerFeeVault: struct {
 			Recipient           common.Address
 			MinWithdrawalAmount *big.Int

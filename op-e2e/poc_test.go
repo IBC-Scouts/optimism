@@ -18,6 +18,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/ethereum/go-ethereum/params"
 	"github.com/stretchr/testify/require"
 )
 
@@ -108,21 +109,7 @@ func TestIBCTransfer(t *testing.T) {
 	l2Opts, err := bind.NewKeyedTransactorWithChainID(sys.Cfg.Secrets.Alice, cfg.L2ChainIDBig())
 	require.NoError(t, err)
 
-	// initiate IBC transfer
-	/*
-		ibcEscrowContract, err := bindings.NewIBCStandardBridge(predeploys.IBCStandardBridgeAddr, l2Client)
-		require.NoError(t, err)
-		tx, err = transactions.PadGasEstimate(opts, 1.1, func(opts *bind.TransactOpts) (*types.Transaction, error) {
-			return ibcEscrowContract.Receive(l2Opts, weth9Address, []byte("hello cosmos"), 100000)
-		})
-		require.NoError(t, err)
-		ibcMsgReceipt, err := wait.ForReceiptOK(context.Background(), l2Client, tx.Hash())
-		require.NoError(t, err)
-
-		t.Log("Message sent through IBCCrossDomainMessenger", "gas used", ibcMsgReceipt.GasUsed)
-	*/
-
-	// invoke cross domain messenger
+	// invoke cross domain messenger (just to test setup of the cross domain messenger)
 	ibcMessenger, err := bindings.NewIBCCrossDomainMessenger(predeploys.IBCCrossDomainMessengerAddr, l2Client)
 	require.NoError(t, err)
 	tx, err := transactions.PadGasEstimate(l2Opts, 1.1, func(opts *bind.TransactOpts) (*types.Transaction, error) {
@@ -135,6 +122,27 @@ func TestIBCTransfer(t *testing.T) {
 	t.Log("Message sent through IBCCrossDomainMessenger", "gas used", ibcMsgReceipt.GasUsed)
 
 	crossDomainMsg, err := e2eutils.ParseCrossDomainMessage(ibcMsgReceipt)
+	require.NoError(t, err)
+
+	t.Log("cross chain messenger event:", "sender", crossDomainMsg.Sender, "to:", crossDomainMsg.Target, "gas limit:", crossDomainMsg.GasLimit, "message:", string(crossDomainMsg.Message), "amount:", crossDomainMsg.Value)
+
+	// initiate IBC transfer
+	l2Opts.Value = big.NewInt(params.Ether)
+	ibcEscrowContract, err := bindings.NewIBCStandardBridge(predeploys.IBCStandardBridgeAddr, l2Client)
+	require.NoError(t, err)
+
+	messengerAddr, err := ibcEscrowContract.Messenger(&bind.CallOpts{Context: context.Background()})
+	require.NoError(t, err)
+	require.Equal(t, predeploys.IBCCrossDomainMessengerAddr, messengerAddr)
+
+	tx, err = ibcEscrowContract.Withdraw(l2Opts, predeploys.LegacyERC20ETHAddr, l2Opts.Value, 200_000, []byte{byte(1)})
+	require.NoError(t, err)
+	transferReceipt, err := wait.ForReceiptOK(context.Background(), l2Client, tx.Hash())
+	require.NoError(t, err)
+
+	t.Log("Message sent through IBCStandardBridge", "gas used", ibcMsgReceipt.GasUsed)
+
+	crossDomainMsg, err = e2eutils.ParseCrossDomainMessage(transferReceipt)
 	require.NoError(t, err)
 
 	t.Log("cross chain messenger event:", "sender", crossDomainMsg.Sender, "to:", crossDomainMsg.Target, "gas limit:", crossDomainMsg.GasLimit, "message:", string(crossDomainMsg.Message), "amount:", crossDomainMsg.Value)
