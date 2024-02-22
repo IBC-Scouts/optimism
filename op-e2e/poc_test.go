@@ -109,7 +109,7 @@ func TestIBCTransfer(t *testing.T) {
 	l2Opts, err := bind.NewKeyedTransactorWithChainID(sys.Cfg.Secrets.Alice, cfg.L2ChainIDBig())
 	require.NoError(t, err)
 
-	// invoke cross domain messenger
+	// invoke cross domain messenger (just to test setup of the cross domain messenger)
 	ibcMessenger, err := bindings.NewIBCCrossDomainMessenger(predeploys.IBCCrossDomainMessengerAddr, l2Client)
 	require.NoError(t, err)
 	tx, err := transactions.PadGasEstimate(l2Opts, 1.1, func(opts *bind.TransactOpts) (*types.Transaction, error) {
@@ -130,9 +130,10 @@ func TestIBCTransfer(t *testing.T) {
 	l2Opts.Value = big.NewInt(params.Ether)
 	ibcEscrowContract, err := bindings.NewIBCStandardBridge(predeploys.IBCStandardBridgeAddr, l2Client)
 	require.NoError(t, err)
-	//	tx, err = transactions.PadGasEstimate(l2Opts, 1.1, func(opts *bind.TransactOpts) (*types.Transaction, error) {
-	//		return ibcEscrowContract.Withdraw(l2Opts, predeploys.LegacyERC20ETHAddr, l2Opts.Value, 200_000, []byte{byte(1)})
-	//	})
+
+	messengerAddr, err := ibcEscrowContract.Messenger(&bind.CallOpts{Context: context.Background()})
+	require.NoError(t, err)
+	require.Equal(t, predeploys.IBCCrossDomainMessengerAddr, messengerAddr)
 
 	tx, err = ibcEscrowContract.Withdraw(l2Opts, predeploys.LegacyERC20ETHAddr, l2Opts.Value, 200_000, []byte{byte(1)})
 	require.NoError(t, err)
