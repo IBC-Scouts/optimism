@@ -109,6 +109,15 @@ func TestIBCTransfer(t *testing.T) {
 	l2Opts, err := bind.NewKeyedTransactorWithChainID(sys.Cfg.Secrets.Alice, cfg.L2ChainIDBig())
 	require.NoError(t, err)
 
+	cosmosClient, err := interceptornode.CreateCosmosClient(sys.t, sys.Cfg.Nodes["sequencer"].L2)
+	require.Nil(t, err, "Error creating cosmos client")
+	defer cosmosClient.Close()
+
+	// invoke sendTx with random data
+	res, err := cosmosClient.ChanOpenInit()
+	require.Nil(t, err, "Error sending cosmos tx")
+	require.NotNil(t, res, "Expected a response")
+
 	// invoke cross domain messenger (just to test setup of the cross domain messenger)
 	ibcMessenger, err := bindings.NewIBCCrossDomainMessenger(predeploys.IBCCrossDomainMessengerAddr, l2Client)
 	require.NoError(t, err)

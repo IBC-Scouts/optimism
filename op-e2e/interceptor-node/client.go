@@ -56,3 +56,16 @@ func (c *cosmosRPCClient) SendCosmosTx(tx []byte) (*CosmosTxResult, error) {
 	c.logger.Info("cosmos_sendTransaction result", "result", result)
 	return &result, nil
 }
+
+func (c *cosmosRPCClient) ChanOpenInit() (*CosmosTxResult, error) {
+	c.logger.Info("Sending Cosmos MsgChanOpenInit")
+
+	var result CosmosTxResult
+	err := c.client.CallContext(context.TODO(), &result, "cosmos_chanOpenInit")
+	if err != nil {
+		return nil, fmt.Errorf("could not send cosmos tx: %w", err)
+	}
+
+	c.logger.Info("cosmos_sendTransaction result", "result", result)
+	return &result, nil
+}
