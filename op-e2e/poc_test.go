@@ -8,6 +8,10 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
+	transfertypes "github.com/cosmos/ibc-go/v8/modules/apps/transfer/types"
+	clienttypes "github.com/cosmos/ibc-go/v8/modules/core/02-client/types"
+	channeltypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
+	ibcexported "github.com/cosmos/ibc-go/v8/modules/core/exported"
 
 	e2eutils "github.com/ethereum-optimism/optimism/indexer/e2e_tests/utils"
 	"github.com/ethereum-optimism/optimism/op-bindings/bindings"
@@ -26,7 +30,7 @@ import (
 )
 
 const (
-	keyName  = "mykey"
+	keyName = "mykey"
 	// This is a test account on the cosmoshub with some uatom. You should use your own via an env variable such as `TestMnemonic := os.Getenv("MY_CLIENT_MNEMONIC")`
 	// https://dev.mintscan.io/cosmos/account/cosmos165smcg7d2fqtwewj3uf33rc33dh8h46yns3sm5
 	TestMnemonic = "pencil surprise brave age old level saddle because olive find winter auto develop spin milk tunnel make demand tattoo wasp primary save bubble keep"
@@ -64,12 +68,12 @@ func TestSendCosmosTx(t *testing.T) {
 	// Set the transaction information (do before signing the Tx)
 	w.TxBuilder.SetGasLimit(100_000)
 	w.TxBuilder.SetMemo("my test memo")
-	w.TxBuilder.SetFeeAmount(sdk.NewCoins(sdk.NewInt64Coin("uatom", 750)))
+	//w.TxBuilder.SetFeeAmount(sdk.NewCoins(sdk.NewInt64Coin("uatom", 750)))
 
 	// // THIS IS NOT DOING ANYTHING AT THE MOMENT
-	// if err := w.SignTx(keyName, 1, 1); err != nil {
-	// 	panic(err)
-	// }
+	if err := w.SignTx(keyName, 1, 1); err != nil {
+		panic(err)
+	}
 
 	// broadcast the Tx that has been signed
 	txBytes := w.GetTxBytes()
@@ -150,10 +154,42 @@ func TestIBCTransfer(t *testing.T) {
 	require.Nil(t, err, "Error creating cosmos client")
 	defer cosmosClient.Close()
 
+	// tx signing code start here ----------
+	// create cosmos signer
+	w := interceptornode.SetupWalletSigner()
+	//_, acc := w.LoadKeyFromMnemonic(keyName, TestMnemonic, "1234567890")
+
+	proof := []byte{0x01}
+	// Create a bank send message from our account (acc) -> some other account address
+	randomAcc, err := sdk.AccAddressFromBech32(testRandomAddr)
+	require.Nil(t, err, "Error converting random address")
+	msg1 := channeltypes.NewMsgChannelOpenInit(transfertypes.PortID, transfertypes.Version, channeltypes.UNORDERED, []string{ibcexported.LocalhostConnectionID}, transfertypes.PortID, randomAcc.String())
+	msg2 := channeltypes.NewMsgChannelOpenTry(transfertypes.PortID, transfertypes.Version, channeltypes.UNORDERED, []string{ibcexported.LocalhostConnectionID}, transfertypes.PortID, "channel-0", transfertypes.Version, proof, clienttypes.Height{}, randomAcc.String())
+	msg3 := channeltypes.NewMsgChannelOpenAck(transfertypes.PortID, "channel-0", "channel-1", transfertypes.Version, proof, clienttypes.Height{}, randomAcc.String())
+	msg4 := channeltypes.NewMsgChannelOpenConfirm(transfertypes.PortID, "channel-1", proof, clienttypes.Height{}, randomAcc.String())
+	if err := w.TxBuilder.SetMsgs(msg1, msg2, msg3, msg4); err != nil {
+		panic(err)
+	}
+
+	// Set the transaction information (do before signing the Tx)
+	w.TxBuilder.SetGasLimit(100_000)
+	w.TxBuilder.SetMemo("my test memo")
+	//w.TxBuilder.SetFeeAmount(sdk.NewCoins(sdk.NewInt64Coin("uatom", 750)))
+
+	// // THIS IS NOT DOING ANYTHING AT THE MOMENT
+	//	if err := w.SignTx(keyName, 1, 1); err != nil {
+	//		panic(err)
+	//	}
+
+	// broadcast the Tx that has been signed
+	txBytes := w.GetTxBytes()
+
 	// invoke sendTx with random data
-	res, err := cosmosClient.ChanOpenInit()
+	res, err := cosmosClient.SendCosmosTx(txBytes)
 	require.Nil(t, err, "Error sending cosmos tx")
 	require.NotNil(t, res, "Expected a response")
+
+	// --------------
 
 	// invoke cross domain messenger (just to test setup of the cross domain messenger)
 	ibcMessenger, err := bindings.NewIBCCrossDomainMessenger(predeploys.IBCCrossDomainMessengerAddr, l2Client)
@@ -192,4 +228,32 @@ func TestIBCTransfer(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Log("cross chain messenger event:", "sender", crossDomainMsg.Sender, "to:", crossDomainMsg.Target, "gas limit:", crossDomainMsg.GasLimit, "message:", string(crossDomainMsg.Message), "amount:", crossDomainMsg.Value)
+
+	//
+	//	w = interceptornode.SetupWalletSigner()
+	//_, acc := w.LoadKeyFromMnemonic(keyName, TestMnemonic, "1234567890")
+
+	// Create a bank send message from our account (acc) -> some other account address
+	//	msgTransfer := transfertypes.NewMsgTransfer(transfertypes.PortID, "channel-0", transfertypes.Version, channeltypes.UNORDERED, []string{ibcexported.LocalhostConnectionID}, transfertypes.PortID, randomAcc.String())
+	//	if err := w.TxBuilder.SetMsgs(msgTransfer); err != nil {
+	//		panic(err)
+	//	}
+
+	// Set the transaction information (do before signing the Tx)
+	//	w.TxBuilder.SetGasLimit(100_000)
+	//	w.TxBuilder.SetMemo("my test memo")
+	//w.TxBuilder.SetFeeAmount(sdk.NewCoins(sdk.NewInt64Coin("uatom", 750)))
+
+	// // THIS IS NOT DOING ANYTHING AT THE MOMENT
+	//	if err := w.SignTx(keyName, 1, 1); err != nil {
+	//		panic(err)
+	//	}
+
+	// broadcast the Tx that has been signed
+	//	txBytes := w.GetTxBytes()
+
+	// invoke sendTx with random data
+	//	res, err := cosmosClient.SendCosmosTx(txBytes)
+	//	require.Nil(t, err, "Error sending cosmos tx")
+	//	require.NotNil(t, res, "Expected a response")
 }
