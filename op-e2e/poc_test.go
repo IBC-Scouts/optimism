@@ -6,6 +6,9 @@ import (
 	"testing"
 	"time"
 
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
+
 	e2eutils "github.com/ethereum-optimism/optimism/indexer/e2e_tests/utils"
 	"github.com/ethereum-optimism/optimism/op-bindings/bindings"
 	"github.com/ethereum-optimism/optimism/op-bindings/predeploys"
@@ -20,6 +23,15 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/stretchr/testify/require"
+)
+
+const (
+	keyName  = "mykey"
+	// This is a test account on the cosmoshub with some uatom. You should use your own via an env variable such as `TestMnemonic := os.Getenv("MY_CLIENT_MNEMONIC")`
+	// https://dev.mintscan.io/cosmos/account/cosmos165smcg7d2fqtwewj3uf33rc33dh8h46yns3sm5
+	TestMnemonic = "pencil surprise brave age old level saddle because olive find winter auto develop spin milk tunnel make demand tattoo wasp primary save bubble keep"
+
+	testRandomAddr = "cosmos1vapwvcsr0m32ptal6z6g9hjctywrw4yzyf6y6v"
 )
 
 func TestSendCosmosTx(t *testing.T) {
@@ -37,8 +49,33 @@ func TestSendCosmosTx(t *testing.T) {
 	require.Nil(t, err, "Error creating cosmos client")
 	defer cosmosClient.Close()
 
+	// create cosmos signer
+	w := interceptornode.SetupWalletSigner()
+	_, acc := w.LoadKeyFromMnemonic(keyName, TestMnemonic, "1234567890")
+
+	// Create a bank send message from our account (acc) -> some other account address
+	randomAcc, err := sdk.AccAddressFromBech32(testRandomAddr)
+	require.Nil(t, err, "Error converting random address")
+	msg1 := banktypes.NewMsgSend(acc, randomAcc, sdk.NewCoins(sdk.NewInt64Coin("uatom", 1)))
+	if err := w.TxBuilder.SetMsgs(msg1); err != nil {
+		panic(err)
+	}
+
+	// Set the transaction information (do before signing the Tx)
+	w.TxBuilder.SetGasLimit(100_000)
+	w.TxBuilder.SetMemo("my test memo")
+	w.TxBuilder.SetFeeAmount(sdk.NewCoins(sdk.NewInt64Coin("uatom", 750)))
+
+	// // THIS IS NOT DOING ANYTHING AT THE MOMENT
+	// if err := w.SignTx(keyName, 1, 1); err != nil {
+	// 	panic(err)
+	// }
+
+	// broadcast the Tx that has been signed
+	txBytes := w.GetTxBytes()
+
 	// invoke sendTx with random data
-	res, err := cosmosClient.SendCosmosTx([]byte("blob"))
+	res, err := cosmosClient.SendCosmosTx(txBytes)
 	require.Nil(t, err, "Error sending cosmos tx")
 	require.NotNil(t, res, "Expected a response")
 
