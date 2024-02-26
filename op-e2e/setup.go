@@ -581,7 +581,6 @@ func (cfg SystemConfig) Start(t *testing.T, _opts ...SystemConfigOption) (*Syste
 		}
 
 		fmt.Printf("================== interceptor node start complete ==========================\n")
-
 	}
 
 	// Geth Clients
@@ -702,6 +701,15 @@ func (cfg SystemConfig) Start(t *testing.T, _opts ...SystemConfigOption) (*Syste
 				l.Warn("closed op-node!")
 			}()
 		}
+
+		interceptornode.UpdateL2GenesisHash(&c.Rollup)
+		// Print information about genesis of rollup:
+		fmt.Printf(
+			"Rollup genesis hash: %s\nRollup genesis height: %d\n",
+			c.Rollup.Genesis.L2.Hash.Hex(),
+			c.Rollup.Genesis.L2.Number,
+		)
+
 		node, err := rollupNode.New(context.Background(), &c, l, snapLog, "", metrics.NewMetrics(""))
 		if err != nil {
 			return nil, err
@@ -711,6 +719,7 @@ func (cfg SystemConfig) Start(t *testing.T, _opts ...SystemConfigOption) (*Syste
 		if err != nil {
 			return nil, err
 		}
+
 		sys.RollupNodes[name] = node
 
 		if action, ok := opts.Get("afterRollupNodeStart", name); ok {
