@@ -35,7 +35,8 @@ const (
 	// https://dev.mintscan.io/cosmos/account/cosmos165smcg7d2fqtwewj3uf33rc33dh8h46yns3sm5
 	TestMnemonic = "pencil surprise brave age old level saddle because olive find winter auto develop spin milk tunnel make demand tattoo wasp primary save bubble keep"
 
-	testRandomAddr = "cosmos1vapwvcsr0m32ptal6z6g9hjctywrw4yzyf6y6v"
+	testRandomAddr  = "cosmos1vapwvcsr0m32ptal6z6g9hjctywrw4yzyf6y6v"
+	testRandomAddr2 = "cosmos1vapwvcsr0m32ptal6z6g9hjctywrw4yzyf6y6y"
 )
 
 func TestSendCosmosTx(t *testing.T) {
@@ -167,7 +168,19 @@ func TestIBCTransfer(t *testing.T) {
 	msg2 := channeltypes.NewMsgChannelOpenTry(transfertypes.PortID, transfertypes.Version, channeltypes.UNORDERED, []string{ibcexported.LocalhostConnectionID}, transfertypes.PortID, "channel-0", transfertypes.Version, proof, clienttypes.Height{}, randomAcc.String())
 	msg3 := channeltypes.NewMsgChannelOpenAck(transfertypes.PortID, "channel-0", "channel-1", transfertypes.Version, proof, clienttypes.Height{}, randomAcc.String())
 	msg4 := channeltypes.NewMsgChannelOpenConfirm(transfertypes.PortID, "channel-1", proof, clienttypes.Height{}, randomAcc.String())
-	if err := w.TxBuilder.SetMsgs(msg1, msg2, msg3, msg4); err != nil {
+
+	transfer_msg := transfertypes.NewMsgTransfer(
+		transfertypes.PortID,
+		"channel-0",
+		sdk.NewInt64Coin("uatom", 1),
+		randomAcc.String(),
+		randomAcc.String(),
+		clienttypes.Height{0, 10},
+		0,
+		"",
+	)
+
+	if err := w.TxBuilder.SetMsgs(msg1, msg2, msg3, msg4, transfer_msg); err != nil {
 		panic(err)
 	}
 
