@@ -146,7 +146,7 @@ func TestIBCTransfer(t *testing.T) {
 	log.Info("genesis", "l2", sys.RollupConfig.Genesis.L2, "l1", sys.RollupConfig.Genesis.L1, "l2_time", sys.RollupConfig.Genesis.L2Time)
 
 	//l1Client := sys.Clients["l1"]
-	l2Client := sys.Clients["sequencer"]
+	l2Client := sys.Clients["interceptor"]
 
 	l2Opts, err := bind.NewKeyedTransactorWithChainID(sys.Cfg.Secrets.Alice, cfg.L2ChainIDBig())
 	require.NoError(t, err)
