@@ -50,7 +50,7 @@ func TestSendCosmosTx(t *testing.T) {
 	l1Client := sys.Clients["l1"]
 	l2Verif := sys.Clients["sequencer"]
 
-	cosmosClient, err := interceptornode.CreateCosmosClient(sys.t, sys.Cfg.Nodes["sequencer"].L2)
+	cosmosClient, err := interceptornode.NewInterceptorClient(sys.t, sys.Cfg.Nodes["sequencer"].L2)
 	require.Nil(t, err, "Error creating cosmos client")
 	defer cosmosClient.Close()
 
@@ -145,15 +145,12 @@ func TestIBCTransfer(t *testing.T) {
 	log := testlog.Logger(t, log.LvlInfo)
 	log.Info("genesis", "l2", sys.RollupConfig.Genesis.L2, "l1", sys.RollupConfig.Genesis.L1, "l2_time", sys.RollupConfig.Genesis.L2Time)
 
-	//l1Client := sys.Clients["l1"]
-	l2Client := sys.Clients["interceptor"]
+	interceptorClient, err := interceptornode.NewInterceptorClient(sys.t, sys.Cfg.Nodes["sequencer"].L2)
+	require.Nil(t, err, "Error creating cosmos client")
+	defer interceptorClient.Close()
 
 	l2Opts, err := bind.NewKeyedTransactorWithChainID(sys.Cfg.Secrets.Alice, cfg.L2ChainIDBig())
 	require.NoError(t, err)
-
-	cosmosClient, err := interceptornode.CreateCosmosClient(sys.t, sys.Cfg.Nodes["sequencer"].L2)
-	require.Nil(t, err, "Error creating cosmos client")
-	defer cosmosClient.Close()
 
 	// tx signing code start here ----------
 	// create cosmos signer
@@ -198,20 +195,20 @@ func TestIBCTransfer(t *testing.T) {
 	txBytes := w.GetTxBytes()
 
 	// invoke sendTx with random data
-	res, err := cosmosClient.SendCosmosTx(txBytes)
+	res, err := interceptorClient.SendCosmosTx(txBytes)
 	require.Nil(t, err, "Error sending cosmos tx")
 	require.NotNil(t, res, "Expected a response")
 
 	// --------------
 
 	// invoke cross domain messenger (just to test setup of the cross domain messenger)
-	ibcMessenger, err := bindings.NewIBCCrossDomainMessenger(predeploys.IBCCrossDomainMessengerAddr, l2Client)
+	ibcMessenger, err := bindings.NewIBCCrossDomainMessenger(predeploys.IBCCrossDomainMessengerAddr, interceptorClient.EthClient())
 	require.NoError(t, err)
 	tx, err := transactions.PadGasEstimate(l2Opts, 1.1, func(opts *bind.TransactOpts) (*types.Transaction, error) {
 		return ibcMessenger.SendMessage(l2Opts, l2Opts.From, []byte("hello cosmos"), 100000)
 	})
 	require.NoError(t, err)
-	ibcMsgReceipt, err := wait.ForReceiptOK(context.Background(), l2Client, tx.Hash())
+	ibcMsgReceipt, err := wait.ForReceiptOK(context.Background(), interceptorClient.EthClient(), tx.Hash())
 	require.NoError(t, err)
 
 	t.Log("Message sent through IBCCrossDomainMessenger", "gas used", ibcMsgReceipt.GasUsed)
@@ -223,7 +220,7 @@ func TestIBCTransfer(t *testing.T) {
 
 	// initiate IBC transfer
 	l2Opts.Value = big.NewInt(params.Ether)
-	ibcEscrowContract, err := bindings.NewIBCStandardBridge(predeploys.IBCStandardBridgeAddr, l2Client)
+	ibcEscrowContract, err := bindings.NewIBCStandardBridge(predeploys.IBCStandardBridgeAddr, interceptorClient.EthClient())
 	require.NoError(t, err)
 
 	messengerAddr, err := ibcEscrowContract.Messenger(&bind.CallOpts{Context: context.Background()})
@@ -232,7 +229,7 @@ func TestIBCTransfer(t *testing.T) {
 
 	tx, err = ibcEscrowContract.Withdraw(l2Opts, predeploys.LegacyERC20ETHAddr, l2Opts.Value, 200_000, []byte{byte(1)})
 	require.NoError(t, err)
-	transferReceipt, err := wait.ForReceiptOK(context.Background(), l2Client, tx.Hash())
+	transferReceipt, err := wait.ForReceiptOK(context.Background(), interceptorClient.EthClient(), tx.Hash())
 	require.NoError(t, err)
 
 	t.Log("Message sent through IBCStandardBridge", "gas used", ibcMsgReceipt.GasUsed)

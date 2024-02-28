@@ -580,13 +580,6 @@ func (cfg SystemConfig) Start(t *testing.T, _opts ...SystemConfigOption) (*Syste
 			L2EngineJWTSecret: testingJWTSecret,
 		}
 
-		rpcClient, err := rpc.DialHTTP(node.Endpoints.HTTPEndpoint)
-		if err != nil {
-			panic(err)
-		}
-
-		sys.Clients["interceptor"] = ethclient.NewClient(rpcClient)
-
 		fmt.Printf("================== interceptor node start complete ==========================\n")
 	}
 
