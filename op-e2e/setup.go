@@ -9,6 +9,7 @@ import (
 	"math/big"
 	"net"
 	"os"
+	"os/exec"
 	"path"
 	"sort"
 	"strings"
@@ -567,6 +568,17 @@ func (cfg SystemConfig) Start(t *testing.T, _opts ...SystemConfigOption) (*Syste
 			// easier to find errors when debugging.
 			panic(err)
 		}
+
+		t.Cleanup(func() {
+			err = exec.Command("pkill", "-9", "interceptor").Run()
+			if err != nil {
+				fmt.Printf("failed to kill interceptor node: %v\n", err)
+			}
+			err = exec.Command("pkill", "-9", "peptide").Run()
+			if err != nil {
+				fmt.Printf("failed to kill peptide node: %v\n", err)
+			}
+		})
 
 		// now the interceptor has the geth client
 		// set the interceptor rpc in the L2 config so op-node interacts with interceptor
